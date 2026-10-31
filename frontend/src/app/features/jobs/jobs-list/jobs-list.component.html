@@ -1,0 +1,88 @@
+<div class="page-header">
+  <h2>Download Jobs</h2>
+  <p-button label="New Job" icon="pi pi-plus" (onClick)="createJob()"></p-button>
+</div>
+
+<p-card>
+  <p-table
+    [value]="(jobs$ | async) || []"
+    [loading]="(loading$ | async) || false"
+    [paginator]="true"
+    [rows]="10"
+    [showCurrentPageReport]="true"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} jobs"
+    styleClass="p-datatable-gridlines"
+  >
+    <ng-template pTemplate="header">
+      <tr>
+        <th pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
+        <th>Target URL</th>
+        <th pSortableColumn="status">Status <p-sortIcon field="status"></p-sortIcon></th>
+        <th>Steps</th>
+        <th pSortableColumn="lastRunAt">Last Run <p-sortIcon field="lastRunAt"></p-sortIcon></th>
+        <th style="width:180px">Actions</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-job>
+      <tr>
+        <td>
+          <span class="job-name" (click)="viewJob(job)">{{ job.name }}</span>
+        </td>
+        <td>
+          <span class="url-cell" [title]="job.targetUrl">{{ job.targetUrl }}</span>
+        </td>
+        <td>
+          <p-tag [value]="job.status" [severity]="getStatusSeverity(job.status)"></p-tag>
+        </td>
+        <td>{{ job.steps?.length || 0 }}</td>
+        <td>{{ job.lastRunAt ? (job.lastRunAt | date:'short') : '—' }}</td>
+        <td>
+          <div class="action-buttons">
+            <p-button
+              icon="pi pi-play"
+              severity="success"
+              [rounded]="true"
+              [text]="true"
+              pTooltip="Run"
+              [disabled]="!canRun(job.status)"
+              (onClick)="runJob(job)"
+            ></p-button>
+            <p-button
+              icon="pi pi-eye"
+              severity="info"
+              [rounded]="true"
+              [text]="true"
+              pTooltip="View Progress"
+              (onClick)="viewJob(job)"
+            ></p-button>
+            <p-button
+              icon="pi pi-pencil"
+              severity="secondary"
+              [rounded]="true"
+              [text]="true"
+              pTooltip="Edit"
+              (onClick)="editJob(job)"
+            ></p-button>
+            <p-button
+              icon="pi pi-trash"
+              severity="danger"
+              [rounded]="true"
+              [text]="true"
+              pTooltip="Delete"
+              (onClick)="deleteJob(job)"
+            ></p-button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="6" class="text-center">
+          No jobs found. <a (click)="createJob()" style="cursor:pointer;color:var(--primary-color)">Create your first job</a>.
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</p-card>

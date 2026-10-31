@@ -1,0 +1,26 @@
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+
+  h2 { margin: 0; font-size: 1.5rem; font-weight: 600; }
+}
+
+.filename-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+
+  i { color: var(--primary-color); }
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.text-secondary {
+  color: var(--text-color-secondary);
+}

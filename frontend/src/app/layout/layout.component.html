@@ -1,0 +1,16 @@
+<div class="layout-wrapper">
+  <div class="layout-sidebar">
+    <div class="layout-logo">
+      <i class="pi pi-cloud-download"></i>
+      <span>PDownloader</span>
+    </div>
+    <p-panelMenu [model]="menuItems" styleClass="layout-menu"></p-panelMenu>
+  </div>
+  <div class="layout-main">
+    <div class="layout-content">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+</div>
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>

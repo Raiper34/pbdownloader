@@ -1,0 +1,188 @@
+<div class="page-header">
+  <h2>{{ isEdit ? 'Edit Job' : 'New Job' }}</h2>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <div class="editor-grid">
+    <!-- Left: Job Details -->
+    <p-card header="Job Details">
+      <div class="field">
+        <label for="name">Job Name *</label>
+        <input
+          id="name"
+          pInputText
+          formControlName="name"
+          placeholder="e.g. Download Report from Portal"
+          class="w-full"
+          [ngClass]="{'ng-invalid ng-dirty': form.get('name')?.invalid && form.get('name')?.touched}"
+        />
+        <small class="p-error" *ngIf="form.get('name')?.invalid && form.get('name')?.touched">
+          Name is required
+        </small>
+      </div>
+
+      <div class="field">
+        <label for="description">Description</label>
+        <textarea
+          id="description"
+          pInputTextarea
+          formControlName="description"
+          placeholder="What does this job do?"
+          rows="3"
+          class="w-full"
+        ></textarea>
+      </div>
+
+      <div class="field">
+        <label for="targetUrl">Starting URL *</label>
+        <input
+          id="targetUrl"
+          pInputText
+          formControlName="targetUrl"
+          placeholder="https://example.com/login"
+          class="w-full"
+          [ngClass]="{'ng-invalid ng-dirty': form.get('targetUrl')?.invalid && form.get('targetUrl')?.touched}"
+        />
+        <small class="p-error" *ngIf="form.get('targetUrl')?.invalid && form.get('targetUrl')?.touched">
+          Starting URL is required
+        </small>
+      </div>
+
+      <div class="field">
+        <label for="downloadPath">Download Directory</label>
+        <input
+          id="downloadPath"
+          pInputText
+          formControlName="downloadPath"
+          placeholder="./downloads"
+          class="w-full"
+        />
+        <small class="text-secondary">Relative to the server's working directory</small>
+      </div>
+
+      <div class="field">
+        <label for="cronExpression">Cron Schedule (optional)</label>
+        <input
+          id="cronExpression"
+          pInputText
+          formControlName="cronExpression"
+          placeholder="0 9 * * 1-5"
+          class="w-full"
+        />
+        <small class="text-secondary">Leave empty to run manually only</small>
+      </div>
+    </p-card>
+
+    <!-- Right: Steps Builder -->
+    <p-card header="Browser Steps">
+      <div class="steps-header">
+        <span class="text-secondary">Define the steps Puppeteer should execute in order</span>
+        <p-button
+          label="Add Step"
+          icon="pi pi-plus"
+          size="small"
+          (onClick)="openAddStep()"
+        ></p-button>
+      </div>
+
+      <div class="steps-list" *ngIf="steps.length > 0; else noSteps">
+        <div class="step-item" *ngFor="let step of steps.controls; let i = index">
+          <div class="step-number">{{ i + 1 }}</div>
+          <div class="step-info">
+            <div class="step-type">
+              <i class="pi {{ getStepTypeIcon(step.value.type) }}"></i>
+              <strong>{{ getStepTypeLabel(step.value.type) }}</strong>
+            </div>
+            <div class="step-description">{{ step.value.description }}</div>
+            <div class="step-details" *ngIf="step.value.selector || step.value.url || step.value.value">
+              <code *ngIf="step.value.url">{{ step.value.url }}</code>
+              <code *ngIf="step.value.selector">{{ step.value.selector }}</code>
+              <span *ngIf="step.value.value" class="step-value">= "{{ step.value.value }}"</span>
+            </div>
+          </div>
+          <div class="step-actions">
+            <p-button icon="pi pi-angle-up" [text]="true" [rounded]="true" size="small" (onClick)="moveStep(i, -1)" [disabled]="i === 0"></p-button>
+            <p-button icon="pi pi-angle-down" [text]="true" [rounded]="true" size="small" (onClick)="moveStep(i, 1)" [disabled]="i === steps.length - 1"></p-button>
+            <p-button icon="pi pi-pencil" severity="secondary" [text]="true" [rounded]="true" size="small" (onClick)="openEditStep(i)"></p-button>
+            <p-button icon="pi pi-trash" severity="danger" [text]="true" [rounded]="true" size="small" (onClick)="removeStep(i)"></p-button>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noSteps>
+        <div class="no-steps">
+          <i class="pi pi-list"></i>
+          <p>No steps yet. Click <strong>Add Step</strong> to get started.</p>
+        </div>
+      </ng-template>
+    </p-card>
+  </div>
+
+  <div class="form-actions">
+    <p-button label="Cancel" severity="secondary" routerLink="/jobs" type="button"></p-button>
+    <p-button [label]="isEdit ? 'Save Changes' : 'Create Job'" icon="pi pi-check" type="submit"></p-button>
+  </div>
+</form>
+
+<!-- Step Dialog -->
+<p-dialog
+  [(visible)]="showStepDialog"
+  [modal]="true"
+  [style]="{ width: '520px' }"
+  [header]="editingStepIndex !== null ? 'Edit Step' : 'Add Step'"
+  [draggable]="false"
+>
+  <form [formGroup]="stepForm">
+    <div class="field">
+      <label>Step Type *</label>
+      <p-select
+        formControlName="type"
+        [options]="stepTypes"
+        optionLabel="label"
+        optionValue="value"
+        class="w-full"
+        placeholder="Select a step type"
+      ></p-select>
+    </div>
+
+    <div class="field">
+      <label>Description *</label>
+      <input
+        pInputText
+        formControlName="description"
+        placeholder="Describe what this step does"
+        class="w-full"
+      />
+      <small class="p-error" *ngIf="stepForm.get('description')?.invalid && stepForm.get('description')?.touched">
+        Description is required
+      </small>
+    </div>
+
+    <div class="field" *ngIf="needsUrl(stepForm.value.type)">
+      <label>URL</label>
+      <input pInputText formControlName="url" placeholder="https://example.com/page" class="w-full" />
+    </div>
+
+    <div class="field" *ngIf="needsSelector(stepForm.value.type)">
+      <label>CSS Selector</label>
+      <input pInputText formControlName="selector" placeholder="#login-button, .menu > a:nth-child(2)" class="w-full" />
+      <small class="text-secondary">CSS selector for the target element</small>
+    </div>
+
+    <div class="field" *ngIf="needsValue(stepForm.value.type)">
+      <label>Value</label>
+      <input pInputText formControlName="value" placeholder="Text to type in the field" class="w-full" />
+    </div>
+
+    <div class="field">
+      <label>Timeout (ms)</label>
+      <p-inputNumber formControlName="timeout" [min]="100" [max]="120000" class="w-full"></p-inputNumber>
+      <small class="text-secondary">Max time to wait for the element (default: 30000ms)</small>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <p-button label="Cancel" severity="secondary" (onClick)="showStepDialog = false"></p-button>
+    <p-button label="Save Step" icon="pi pi-check" (onClick)="saveStep()" [disabled]="stepForm.invalid"></p-button>
+  </ng-template>
+</p-dialog>

@@ -1,0 +1,74 @@
+<div class="page-header">
+  <h2>Downloads</h2>
+  <p-button
+    icon="pi pi-refresh"
+    label="Refresh"
+    severity="secondary"
+    (onClick)="refresh()"
+  ></p-button>
+</div>
+
+<p-card>
+  <p-table
+    [value]="(downloads$ | async) || []"
+    [loading]="(loading$ | async) || false"
+    [paginator]="true"
+    [rows]="15"
+    styleClass="p-datatable-gridlines"
+    [showCurrentPageReport]="true"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} downloads"
+  >
+    <ng-template pTemplate="header">
+      <tr>
+        <th pSortableColumn="filename">Filename <p-sortIcon field="filename"></p-sortIcon></th>
+        <th>Job</th>
+        <th pSortableColumn="fileSize">Size <p-sortIcon field="fileSize"></p-sortIcon></th>
+        <th pSortableColumn="createdAt">Downloaded <p-sortIcon field="createdAt"></p-sortIcon></th>
+        <th style="width:120px">Actions</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-dl>
+      <tr>
+        <td>
+          <div class="filename-cell">
+            <i class="pi pi-file"></i>
+            <span>{{ dl.filename }}</span>
+          </div>
+        </td>
+        <td>
+          <a *ngIf="dl.job" [routerLink]="['/jobs', dl.jobId]">{{ dl.job?.name }}</a>
+          <span *ngIf="!dl.job" class="text-secondary">—</span>
+        </td>
+        <td>{{ formatSize(dl.fileSize) }}</td>
+        <td>{{ dl.createdAt | date:'short' }}</td>
+        <td>
+          <div class="action-buttons">
+            <p-button
+              icon="pi pi-download"
+              severity="success"
+              [rounded]="true"
+              [text]="true"
+              pTooltip="Download File"
+              (onClick)="downloadFile(dl)"
+            ></p-button>
+            <p-button
+              icon="pi pi-trash"
+              severity="danger"
+              [rounded]="true"
+              [text]="true"
+              pTooltip="Remove Record"
+              (onClick)="deleteDownload(dl)"
+            ></p-button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="5" class="text-center">No downloads yet. Run a job to start downloading files.</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</p-card>

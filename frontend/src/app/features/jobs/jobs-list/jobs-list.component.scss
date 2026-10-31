@@ -1,0 +1,37 @@
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+
+  h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+}
+
+.job-name {
+  font-weight: 600;
+  color: var(--primary-color);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.url-cell {
+  max-width: 250px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-color-secondary);
+  font-size: 0.875rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.25rem;
+}

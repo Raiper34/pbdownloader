@@ -1,0 +1,98 @@
+<ng-container *ngIf="job$ | async as job">
+  <div class="page-header">
+    <div class="page-header-left">
+      <p-button icon="pi pi-arrow-left" [text]="true" routerLink="/jobs" size="small" label="Back"></p-button>
+      <h2>{{ job.name }}</h2>
+      <p-tag [value]="job.status" [severity]="getStatusSeverity(job.status)"></p-tag>
+    </div>
+    <div class="page-header-actions">
+      <p-button
+        label="Run Now"
+        icon="pi pi-play"
+        severity="success"
+        (onClick)="runJob()"
+        [disabled]="job.status === JobStatus.RUNNING || job.status === JobStatus.QUEUED"
+      ></p-button>
+      <p-button label="Edit" icon="pi pi-pencil" severity="secondary" (onClick)="editJob()"></p-button>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <!-- Job Info -->
+    <p-card header="Job Info">
+      <div class="info-row" *ngIf="job.description">
+        <span class="info-label">Description</span>
+        <span>{{ job.description }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Starting URL</span>
+        <a [href]="job.targetUrl" target="_blank">{{ job.targetUrl }}</a>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Download Path</span>
+        <code>{{ job.downloadPath }}</code>
+      </div>
+      <div class="info-row" *ngIf="job.cronExpression">
+        <span class="info-label">Schedule</span>
+        <code>{{ job.cronExpression }}</code>
+      </div>
+      <div class="info-row" *ngIf="job.lastRunAt">
+        <span class="info-label">Last Run</span>
+        <span>{{ job.lastRunAt | date:'medium' }}</span>
+      </div>
+      <div class="info-row" *ngIf="job.lastError">
+        <span class="info-label">Last Error</span>
+        <span class="text-red-500">{{ job.lastError }}</span>
+      </div>
+    </p-card>
+
+    <!-- Defined Steps -->
+    <p-card header="Defined Steps">
+      <div class="defined-steps">
+        <div class="defined-step" *ngFor="let step of job.steps; let i = index">
+          <span class="step-num">{{ i + 1 }}</span>
+          <div class="step-content">
+            <strong>{{ step.type }}</strong>
+            <span>{{ step.description }}</span>
+            <code *ngIf="step.selector">{{ step.selector }}</code>
+            <code *ngIf="step.url">{{ step.url }}</code>
+          </div>
+        </div>
+      </div>
+    </p-card>
+  </div>
+
+  <!-- Progress Panel -->
+  <p-card header="Live Progress" styleClass="progress-card">
+    <div class="progress-section">
+      <div class="progress-bar-wrap">
+        <p-progressBar [value]="progressValue$ | async" [showValue]="true"></p-progressBar>
+      </div>
+
+      <div class="progress-status" *ngIf="jobProgressStatus$ | async as status">
+        <p-tag [value]="status" [severity]="getStatusSeverity(status)"></p-tag>
+        <span *ngIf="progressError$ | async as err" class="text-red-500 ml-2">{{ err }}</span>
+      </div>
+
+      <div class="progress-steps" *ngIf="(progressSteps$ | async)?.length">
+        <div
+          class="progress-step"
+          *ngFor="let step of progressSteps$ | async"
+          [ngClass]="'step-' + step.status"
+        >
+          <i class="pi {{ getStepStatusIcon(step.status) }}" [ngClass]="getStepStatusClass(step.status)"></i>
+          <div class="progress-step-info">
+            <span class="step-desc">{{ step.stepDescription }}</span>
+            <span class="step-msg" *ngIf="step.message">{{ step.message }}</span>
+          </div>
+          <span class="step-index">Step {{ step.stepIndex + 1 }}/{{ step.totalSteps }}</span>
+        </div>
+      </div>
+
+      <div class="no-progress" *ngIf="!(progressSteps$ | async)?.length">
+        <i class="pi pi-info-circle"></i>
+        <p>No active progress. Run the job to see live updates here.</p>
+      </div>
+    </div>
+  </p-card>
+</ng-container>

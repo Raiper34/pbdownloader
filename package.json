@@ -1,0 +1,13 @@
+{
+  "name": "pdownloader",
+  "version": "1.0.0",
+  "description": "Selfhosted file downloader with Puppeteer job automation",
+  "scripts": {
+    "backend:dev": "cd backend && npm run start:dev",
+    "backend:build": "cd backend && npm run build",
+    "frontend:dev": "cd frontend && npm start",
+    "frontend:build": "cd frontend && npm run build",
+    "infra:up": "docker-compose up -d",
+    "infra:down": "docker-compose down"
+  }
+}
