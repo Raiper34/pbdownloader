@@ -1,0 +1,11 @@
+.git
+node_modules
+dist
+.angular
+coverage
+.env
+.env.*
+*.log
+npm-debug.log*
+__screenshots__/
+README.md

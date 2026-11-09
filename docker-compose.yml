@@ -1,0 +1,69 @@
+version: '3.9'
+
+services:
+  # ── All-in-one image (frontend + backend + redis in a single container) ──────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - sqlite_data:/app/data
+      - downloads:/app/downloads
+
+  # ── Multi-container setup (original) ─────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    profiles:
+      - multi
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    profiles:
+      - multi
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - sqlite_data:/app/data
+      - downloads:/app/downloads
+    environment:
+      - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DB_PATH=/app/data/db.sqlite
+      - DOWNLOADS_PATH=/app/downloads
+      - PORT=3000
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/downloaders', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    profiles:
+      - multi
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+
+volumes:
+  sqlite_data:
+  downloads:

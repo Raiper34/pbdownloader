@@ -1,0 +1,5 @@
+data/
+downloads/
+coverage/
+*.log
+npm-debug.log*

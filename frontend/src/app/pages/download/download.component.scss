@@ -1,0 +1,155 @@
+.download-page {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-color);
+
+  i {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+  }
+
+  .card-header-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .bulk-count {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-color-secondary);
+    padding: 0 0.25rem;
+  }
+}
+
+.download-form {
+  ::ng-deep .p-inputgroup {
+    display: flex;
+    width: 100%;
+
+    input.p-inputtext {
+      flex: 1 1 0;
+      min-width: 0;
+      width: 0;
+    }
+
+    .downloader-select {
+      flex: 0 0 220px;
+      width: 220px;
+
+      .p-select {
+        width: 100%;
+      }
+    }
+  }
+
+  @media (max-width: 600px) {
+    ::ng-deep .p-inputgroup {
+      flex-wrap: wrap;
+
+      input.p-inputtext {
+        flex: 1 1 100%;
+        width: 100%;
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+      }
+
+      .downloader-select {
+        flex: 1 1 auto;
+        width: 100%;
+
+        .p-select {
+          width: 100%;
+          border-radius: 0;
+        }
+      }
+
+      .p-button {
+        flex: 1 1 100%;
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+        justify-content: center;
+      }
+    }
+  }
+}
+
+.url-cell {
+  max-width: 320px;
+
+  .url-text {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    color: var(--text-color-secondary);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--primary-color);
+      text-decoration: underline;
+    }
+  }
+}
+
+.progress-row {
+  .progress-cell {
+    padding: 0 !important;
+    border-top: none !important;
+  }
+
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.2rem 0.5rem 0.3rem;
+    font-size: 0.72rem;
+    color: var(--text-color-secondary);
+  }
+
+  .progress-speed {
+    font-weight: 600;
+    color: var(--primary-color);
+  }
+
+  ::ng-deep .row-progress {
+    height: 3px;
+    border-radius: 0;
+
+    .p-progressbar-value {
+      border-radius: 0;
+    }
+  }
+}
+
+.empty-message {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-color-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+
+  i {
+    font-size: 2rem;
+  }
+}
+
+.action-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+
+

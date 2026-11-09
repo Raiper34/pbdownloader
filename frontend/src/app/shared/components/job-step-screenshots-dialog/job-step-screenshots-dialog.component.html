@@ -1,0 +1,75 @@
+<p-dialog
+  header="Log"
+  [visible]="visible"
+  (onHide)="onHide()"
+  [modal]="true"
+  [style]="{ width: '80vw', maxWidth: '1000px' }"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="job-log-dialog"
+>
+  @if (loading) {
+    <div class="loading-container">
+      <p-progressSpinner strokeWidth="4" />
+    </div>
+  } @else if (logs.length === 0) {
+    <div class="empty-state">
+      <i class="fas fa-camera-slash"></i>
+      <span>No log entries available yet.</span>
+    </div>
+  } @else {
+    <div class="log-list">
+      @for (log of logs; track log.id) {
+        <div class="accordion-item" [class.failed]="isFailed(log)" [class.expanded]="isExpanded(log.id)">
+          <div class="accordion-header" (click)="toggle(log.id)">
+            <span class="log-order" [class.failed-order]="isFailed(log)">{{ log.order }}</span>
+            <span class="log-label">{{ log.label }}</span>
+            @if (log.stepType) {
+              <p-tag
+                [value]="getStepTypeLabel(log.stepType)"
+                [severity]="isFailed(log) ? 'danger' : getStepTypeSeverity(log.stepType)"
+              />
+            }
+            @if (isFailed(log)) {
+              <i class="fas fa-exclamation-circle failed-icon"></i>
+            }
+            <i class="fas fa-chevron-down chevron" [class.rotated]="isExpanded(log.id)"></i>
+          </div>
+
+          @if (isExpanded(log.id)) {
+            <div class="accordion-body" (click)="$event.stopPropagation()">
+              @if (log.stepSelector || log.stepValue) {
+                <div class="log-meta">
+                  @if (log.stepSelector) {
+                    <div class="log-meta-row">
+                      <span class="meta-label">Selector</span>
+                      <code class="meta-value">{{ log.stepSelector }}</code>
+                    </div>
+                  }
+                  @if (log.stepValue) {
+                    <div class="log-meta-row">
+                      <span class="meta-label">Value</span>
+                      <code class="meta-value">{{ log.stepValue }}</code>
+                    </div>
+                  }
+                </div>
+              }
+              @if (log.screenshotPath) {
+                <p-image
+                  [src]="getScreenshotUrl(log)"
+                  [alt]="log.label"
+                  imageClass="log-img"
+                />
+              } @else {
+                <div class="screenshot-placeholder">
+                  <i class="fas fa-hourglass-half"></i>
+                  <span>Not captured</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</p-dialog>

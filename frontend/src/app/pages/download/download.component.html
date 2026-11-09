@@ -1,0 +1,244 @@
+<p-toast />
+<p-confirmDialog />
+
+<p-menu #jobMenu [model]="jobMenuItems" [popup]="true" appendTo="body" />
+
+<p-dialog
+  header="Error Screenshot"
+  [(visible)]="screenshotDialogVisible"
+  [modal]="true"
+  [style]="{ width: '90vw', maxWidth: '1200px' }"
+  [draggable]="false"
+  [resizable]="false"
+>
+  @if (screenshotUrl) {
+    <img [src]="screenshotUrl" alt="Error screenshot" style="width: 100%; display: block;" />
+  }
+</p-dialog>
+
+<app-job-log-dialog
+  [visible]="logDialogVisible"
+  [jobId]="logDialogJobId"
+  (visibleChange)="logDialogVisible = $event"
+/>
+
+<div class="download-page">
+  <p-card>
+    <ng-template #header>
+      <div class="card-header">
+        <i class="fas fa-cloud-download-alt"></i>
+        <span>New Download</span>
+      </div>
+    </ng-template>
+
+    <div class="download-form">
+      <p-inputgroup>
+        <input
+          pInputText
+          [(ngModel)]="url"
+          placeholder="Enter URL..."
+          (ngModelChange)="onUrlChange()"
+          (keyup.enter)="startDownload()"
+        />
+        <p-select
+          [(ngModel)]="selectedDownloaderId"
+          [options]="(downloaders$ | async) ?? []"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Auto"
+          [showClear]="true"
+          class="downloader-select"
+        />
+        <p-button
+          label="Download"
+          icon="fas fa-download"
+          (click)="startDownload()"
+          [loading]="(jobsLoading$ | async) ?? false"
+        />
+      </p-inputgroup>
+    </div>
+  </p-card>
+
+  <p-card styleClass="mt-4">
+    <ng-template #header>
+      <div class="card-header">
+        <i class="fas fa-list"></i>
+        <span>Active & Recent Downloads</span>
+        <div class="card-header-actions">
+          @if (bulkMode) {
+            <p-button
+              label="Retry"
+              icon="fas fa-redo"
+              size="small"
+              severity="secondary"
+              [outlined]="true"
+              [disabled]="!canBulkRetry"
+              (click)="bulkRetry()"
+            />
+            <p-button
+              label="Download files"
+              icon="fas fa-file-download"
+              size="small"
+              severity="secondary"
+              [outlined]="true"
+              [disabled]="!canBulkExportJobs"
+              (click)="bulkExportJobs()"
+            />
+            <p-button
+              label="Delete"
+              icon="fas fa-trash"
+              size="small"
+              severity="danger"
+              [outlined]="true"
+              [disabled]="!canBulkDelete"
+              (click)="bulkDelete()"
+            />
+            @if (selectedJobs.length > 0) {
+              <span class="bulk-count">{{ selectedJobs.length }} selected</span>
+            }
+          }
+          <p-button
+            [icon]="bulkMode ? 'fas fa-times' : 'fas fa-tasks'"
+            [label]="bulkMode ? 'Cancel' : 'Bulk actions'"
+            size="small"
+            [severity]="bulkMode ? 'secondary' : 'secondary'"
+            [outlined]="true"
+            (click)="toggleBulkMode()"
+            [pTooltip]="bulkMode ? 'Exit bulk mode' : 'Select multiple rows'"
+            tooltipPosition="left"
+          />
+        </div>
+      </div>
+    </ng-template>
+
+    @let progressMap = (progressMap$ | async) ?? {};
+
+    <p-table
+      [value]="(jobs$ | async) ?? []"
+      [loading]="(jobsLoading$ | async) ?? false"
+      [paginator]="true"
+      [rows]="10"
+      [rowsPerPageOptions]="[5, 10, 25]"
+      styleClass="p-datatable-sm"
+      [rowHover]="true"
+      sortField="createdAt"
+      [sortOrder]="-1"
+      [(selection)]="selectedJobs"
+      dataKey="id"
+    >
+      <ng-template #header>
+        <tr>
+          @if (bulkMode) {
+            <th style="width: 3rem">
+              <p-tableHeaderCheckbox />
+            </th>
+          }
+          <th pSortableColumn="title">Title <p-sortIcon field="title" /></th>
+          <th pSortableColumn="downloader.name" class="col-hide-sm">Downloader <p-sortIcon field="downloader.name" /></th>
+          <th pSortableColumn="status">Status <p-sortIcon field="status" /></th>
+          <th pSortableColumn="createdAt" class="col-hide-sm">Created <p-sortIcon field="createdAt" /></th>
+          <th>Action</th>
+        </tr>
+        <tr>
+          @if (bulkMode) {
+            <th></th>
+          }
+          <th>
+            <p-columnFilter type="text" field="title" display="row" placeholder="Filter title..." [showMenu]="false" />
+          </th>
+          <th class="col-hide-sm">
+            <p-columnFilter type="text" field="downloader.name" display="row" placeholder="Filter downloader..." [showMenu]="false" />
+          </th>
+          <th>
+            <p-columnFilter field="status" matchMode="equals" display="row" [showMenu]="false">
+              <ng-template #filter let-value let-filter="filterCallback">
+                <p-select
+                  [ngModel]="value"
+                  (ngModelChange)="filter($event)"
+                  [options]="statusFilterOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Any"
+                  [showClear]="true"
+                  styleClass="w-full"
+                />
+              </ng-template>
+            </p-columnFilter>
+          </th>
+          <th class="col-hide-sm"></th>
+          <th></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-job>
+        <tr>
+          @if (bulkMode) {
+            <td>
+              <p-tableCheckbox [value]="job" />
+            </td>
+          }
+          <td>{{ job.title ?? '—' }}</td>
+          <td class="col-hide-sm">{{ job.downloader?.name ?? '—' }}</td>
+          <td>
+            <p-tag
+              [value]="getStatusLabel(job.status)"
+              [severity]="getStatusSeverity(job.status)"
+              [pTooltip]="job.status === 'failed' ? job.errorMessage : null"
+              tooltipPosition="bottom"
+            />
+          </td>
+          <td class="col-hide-sm">{{ job.createdAt | date:'dd.MM.yyyy HH:mm' }}</td>
+          <td>
+            <p-button
+              icon="fas fa-ellipsis-v"
+              size="small"
+              [rounded]="true"
+              [text]="true"
+              (click)="openJobMenu($event, job)"
+              pTooltip="Actions"
+            />
+          </td>
+        </tr>
+        @if (job.status === 'running') {
+          @let progress = progressMap[job.id];
+          <tr class="progress-row">
+            <td [attr.colspan]="bulkMode ? 6 : 5" class="progress-cell">
+              @if (progress && progress.percent !== null) {
+                <p-progressbar
+                  [value]="progress.percent"
+                  styleClass="row-progress"
+                  [showValue]="false"
+                />
+              } @else {
+                <p-progressbar mode="indeterminate" styleClass="row-progress" />
+              }
+              @if (progress) {
+                <div class="progress-info">
+                  <span class="progress-bytes">
+                    @if (progress.totalBytes > 0) {
+                      {{ formatBytes(progress.receivedBytes) }} / {{ formatBytes(progress.totalBytes) }}
+                    } @else {
+                      {{ formatBytes(progress.receivedBytes) }}
+                    }
+                  </span>
+                  @if (progress.speedBps) {
+                    <span class="progress-speed">{{ formatSpeed(progress.speedBps) }}</span>
+                  }
+                </div>
+              }
+            </td>
+          </tr>
+        }
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr>
+          <td [attr.colspan]="bulkMode ? 6 : 5">
+            <div class="empty-message">
+              <i class="fas fa-inbox"></i>
+              <span>No downloads yet</span>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+</div>

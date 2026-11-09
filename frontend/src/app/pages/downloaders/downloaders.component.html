@@ -1,0 +1,386 @@
+<p-toast />
+<p-confirmDialog />
+
+<p-menu #downloaderMenu [model]="downloaderMenuItems" [popup]="true" appendTo="body" />
+
+<div class="downloaders-page">
+  <div class="page-top-actions">
+    <p-button
+      label="Import"
+      icon="fas fa-file-import"
+      severity="secondary"
+      [outlined]="true"
+      (click)="triggerImport()"
+    />
+    <p-button
+      label="New downloader"
+      icon="fas fa-plus"
+      (click)="openCreateDialog()"
+    />
+    <input
+      #importFileInput
+      type="file"
+      accept=".json,application/json"
+      style="display:none"
+      (change)="onImportFileSelected($event)"
+    />
+  </div>
+
+  <p-card>
+    <ng-template #header>
+      <div class="page-header">
+        <div class="page-title">
+          <i class="fas fa-cogs"></i>
+          <span>Downloaders</span>
+        </div>
+        <div class="header-actions">
+          @if (bulkMode) {
+            <p-button
+              label="Export"
+              icon="fas fa-file-export"
+              size="small"
+              severity="secondary"
+              [outlined]="true"
+              [disabled]="selectedDownloaders.length === 0"
+              (click)="bulkExport()"
+            />
+            <p-button
+              label="Delete"
+              icon="fas fa-trash"
+              size="small"
+              severity="danger"
+              [outlined]="true"
+              [disabled]="selectedDownloaders.length === 0"
+              (click)="bulkDelete()"
+            />
+            @if (selectedDownloaders.length > 0) {
+              <span class="bulk-count">{{ selectedDownloaders.length }} selected</span>
+            }
+          }
+          <p-button
+            [icon]="bulkMode ? 'fas fa-times' : 'fas fa-tasks'"
+            [label]="bulkMode ? 'Cancel' : 'Bulk actions'"
+            size="small"
+            severity="secondary"
+            [outlined]="true"
+            (click)="toggleBulkMode()"
+            [pTooltip]="bulkMode ? 'Exit bulk mode' : 'Select multiple rows'"
+            tooltipPosition="left"
+          />
+        </div>
+      </div>
+    </ng-template>
+
+    <p-table
+      [value]="(downloaders$ | async) ?? []"
+      [loading]="(loading$ | async) ?? false"
+      [paginator]="true"
+      [rows]="10"
+      styleClass="p-datatable-sm"
+      [rowHover]="true"
+      sortField="createdAt"
+      [sortOrder]="-1"
+      [(selection)]="selectedDownloaders"
+      dataKey="id"
+    >
+      <ng-template #header>
+        <tr>
+          @if (bulkMode) {
+            <th style="width: 3rem">
+              <p-tableHeaderCheckbox />
+            </th>
+          }
+          <th pSortableColumn="name">Name <p-sortIcon field="name" /></th>
+          <th pSortableColumn="urlPattern" class="col-hide-md">URL Pattern <p-sortIcon field="urlPattern" /></th>
+          <th pSortableColumn="description" class="col-hide-lg">Description <p-sortIcon field="description" /></th>
+          <th class="col-hide-sm">Steps</th>
+          <th pSortableColumn="createdAt" class="col-hide-md">Created <p-sortIcon field="createdAt" /></th>
+          <th>Actions</th>
+        </tr>
+        <tr>
+          @if (bulkMode) {
+            <th></th>
+          }
+          <th>
+            <p-columnFilter type="text" field="name" display="row" placeholder="Filter name..." [showMenu]="false" />
+          </th>
+          <th class="col-hide-md">
+            <p-columnFilter type="text" field="urlPattern" display="row" placeholder="Filter pattern..." [showMenu]="false" />
+          </th>
+          <th class="col-hide-lg">
+            <p-columnFilter type="text" field="description" display="row" placeholder="Filter description..." [showMenu]="false" />
+          </th>
+          <th class="col-hide-sm"></th>
+          <th class="col-hide-md"></th>
+          <th></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-d>
+        <tr>
+          @if (bulkMode) {
+            <td>
+              <p-tableCheckbox [value]="d" />
+            </td>
+          }
+          <td><strong>{{ d.name }}</strong></td>
+          <td class="col-hide-md"><code class="pattern">{{ d.urlPattern }}</code></td>
+          <td class="desc-cell col-hide-lg">{{ d.description || '—' }}</td>
+          <td class="col-hide-sm">
+            <div class="steps-preview">
+              @for (step of getFirstSteps(d.steps); track step.id) {
+                <span
+                  [pTooltip]="getStepTooltip(step)"
+                  tooltipPosition="bottom"
+                >
+                  <p-tag
+                    [value]="getStepTypeLabel(step.type)"
+                    [severity]="getStepTypeSeverity(step.type)"
+                    styleClass="step-tag"
+                  />
+                </span>
+              }
+              @if (d.steps.length > 3) {
+                <span
+                  class="more-steps"
+                  [pTooltip]="getMoreStepsTooltip(d.steps)"
+                  tooltipPosition="bottom"
+                >+{{ d.steps.length - 3 }}</span>
+              }
+            </div>
+          </td>
+          <td class="col-hide-md">{{ d.createdAt | date:'dd.MM.yyyy' }}</td>
+          <td>
+            <p-button
+              icon="fas fa-ellipsis-v"
+              size="small"
+              [rounded]="true"
+              [text]="true"
+              (click)="openDownloaderMenu($event, d)"
+              pTooltip="Actions"
+            />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr>
+          <td [attr.colspan]="bulkMode ? 7 : 6">
+            <div class="empty-message">
+              <i class="fas fa-inbox"></i>
+              <span>No downloaders yet. Create the first one by clicking "New downloader".</span>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+</div>
+
+<!-- Create / Edit dialog -->
+<p-dialog
+  [(visible)]="dialogVisible"
+  [header]="editingId !== null ? 'Edit downloader' : 'New downloader'"
+  [modal]="true"
+  [style]="{ width: 'min(900px, 95vw)' }"
+  [draggable]="false"
+>
+  <form [formGroup]="form" class="downloader-form">
+    <div class="form-field">
+      <label for="name">Name <span class="required">*</span></label>
+      <input
+        id="name"
+        pInputText
+        formControlName="name"
+        placeholder="e.g. YouTube Downloader"
+        class="w-full"
+      />
+      @if (form.get('name')?.invalid && form.get('name')?.touched) {
+        <small class="error-text">Name is required</small>
+      }
+    </div>
+
+    <div class="form-field">
+      <label for="urlPattern">URL Pattern (regex) <span class="required">*</span></label>
+      <input
+        id="urlPattern"
+        pInputText
+        formControlName="urlPattern"
+        placeholder="e.g. https://www\.youtube\.com/.*"
+        class="w-full"
+      />
+      @if (form.get('urlPattern')?.invalid && form.get('urlPattern')?.touched) {
+        <small class="error-text">URL Pattern is required</small>
+      }
+    </div>
+
+    <div class="form-field">
+      <label for="description">Description</label>
+      <textarea
+        id="description"
+        pTextarea
+        formControlName="description"
+        placeholder="Optional description..."
+        rows="2"
+        class="w-full"
+      ></textarea>
+    </div>
+
+    <div class="form-field">
+      <label for="titleSelector">Title selector (CSS)</label>
+      <input
+        id="titleSelector"
+        pInputText
+        formControlName="titleSelector"
+        placeholder="e.g. h1.title — leave empty to use page title"
+        class="w-full"
+      />
+    </div>
+
+    <div class="form-row">
+      <div class="form-field">
+        <label for="maxConcurrentJobs">Max concurrent jobs</label>
+        <p-inputnumber
+          id="maxConcurrentJobs"
+          formControlName="maxConcurrentJobs"
+          [min]="1"
+          [max]="20"
+          [showButtons]="true"
+          [inputStyle]="{ width: '100%' }"
+          pTooltip="Maximum number of jobs running in parallel for this downloader"
+          tooltipPosition="top"
+        />
+      </div>
+      <div class="form-field">
+        <label for="jobDelay">Delay between jobs</label>
+        <p-inputnumber
+          id="jobDelay"
+          formControlName="jobDelay"
+          [min]="0"
+          [showButtons]="true"
+          suffix=" s"
+          [inputStyle]="{ width: '100%' }"
+          pTooltip="Minimum delay in seconds between consecutive jobs for this downloader"
+          tooltipPosition="top"
+        />
+      </div>
+    </div>
+
+    <div class="steps-section">
+      <div class="steps-header">
+        <span class="steps-title">
+          <i class="fas fa-list-ol"></i> Steps
+        </span>
+        <p-button
+          label="Add step"
+          icon="fas fa-plus"
+          size="small"
+          [outlined]="true"
+          (click)="addStep()"
+        />
+      </div>
+
+      <div formArrayName="steps" class="steps-list" cdkDropList (cdkDropListDropped)="dropStep($event)">
+        @for (step of stepsArray.controls; track step) {
+          <div [formGroupName]="$index" class="step-item" cdkDrag>
+            <div class="step-row">
+              <span class="drag-handle" cdkDragHandle>
+                <i class="fas fa-grip-vertical"></i>
+              </span>
+
+              <span class="step-number">{{ $index + 1 }}</span>
+
+              <p-select
+                formControlName="type"
+                [options]="stepTypeOptions"
+                optionLabel="label"
+                optionValue="value"
+                appendTo="body"
+                class="step-type-select"
+                (onChange)="onStepTypeChange($index)"
+              />
+
+              @if (stepsArray.at($index).get('type')?.value !== 'wait') {
+                <textarea
+                  pTextarea
+                  [autoResize]="false"
+                  formControlName="selector"
+                  placeholder="CSS selector (e.g. #download-btn)"
+                  [class]="'step-selector step-selector-textarea' + (focusedSelectorIndex === $index ? ' expanded' : '')"
+                  rows="1"
+                  (focus)="focusedSelectorIndex = $index"
+                  (blur)="onSelectorBlur($event, $index)"
+                ></textarea>
+              }
+
+              @if (stepsArray.at($index).get('type')?.value === 'fill') {
+                <input
+                  pInputText
+                  formControlName="value"
+                  placeholder="Value"
+                  class="step-value"
+                />
+              }
+
+              @if (stepsArray.at($index).get('type')?.value === 'wait') {
+                <p-inputnumber
+                  formControlName="value"
+                  [min]="1"
+                  [max]="60000"
+                  placeholder="Duration (ms)"
+                  class="step-value"
+                  [inputStyle]="{ width: '100px' }"
+                  suffix=" ms"
+                />
+              }
+
+
+              @if (stepsArray.at($index).get('type')?.value === 'waitForSelector') {
+                <span
+                  class="flag-badge"
+                  [class.flag-badge--active]="stepsArray.at($index).get('negate')?.value"
+                  pTooltip="Negate (wait until hidden)"
+                  tooltipPosition="top"
+                  (click)="toggleFlag($index, 'negate')"
+                >NEG</span>
+              }
+
+              @if (stepsArray.at($index).get('type')?.value !== 'wait') {
+                <span
+                  class="flag-badge"
+                  [class.flag-badge--active]="stepsArray.at($index).get('optional')?.value"
+                  pTooltip="Optional (continue on error)"
+                  tooltipPosition="top"
+                  (click)="toggleFlag($index, 'optional')"
+                >OPT</span>
+              }
+
+              <div class="step-actions">
+                <p-button
+                  icon="fas fa-times"
+                  size="small"
+                  [rounded]="true"
+                  [text]="true"
+                  severity="danger"
+                  (click)="removeStep($index)"
+                />
+              </div>
+            </div>
+
+            <div class="cdk-drag-placeholder-custom" *cdkDragPlaceholder></div>
+          </div>
+        }
+
+        @if (stepsArray.length === 0) {
+          <div class="no-steps">
+            <i class="fas fa-info-circle"></i>
+            No steps yet. Add at least one step.
+          </div>
+        }
+      </div>
+    </div>
+  </form>
+
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [outlined]="true" (click)="dialogVisible = false" />
+    <p-button label="Save" icon="fas fa-save" (click)="saveDownloader()" />
+  </ng-template>
+</p-dialog>

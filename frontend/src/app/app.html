@@ -1,0 +1,20 @@
+<div class="app-layout">
+  <nav class="app-nav">
+    <div class="nav-brand">
+      <i class="fas fa-download"></i>
+      <span>PB Downloader</span>
+    </div>
+    <div class="nav-links">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        <i class="fas fa-home"></i> Download
+      </a>
+      <a routerLink="/downloaders" routerLinkActive="active">
+        <i class="fas fa-cogs"></i> Downloaders
+      </a>
+    </div>
+  </nav>
+
+  <main class="app-main">
+    <router-outlet />
+  </main>
+</div>
